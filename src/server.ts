@@ -1,36 +1,55 @@
-import net = require('net');//import socket module
-import ip = require('ip');
+'use strict';
 
-// define address interface
-interface Address { port: number; family: string; address: string; };
+//make the client
+const net = require('net'),
+    readline = require('readline'),
+    client = new net.Socket(),
+    io = readline.createInterface(process.stdin, process.stdout);
+    
 
-// create socket server
-let server:net.Server = net.createServer();
+client.on('data', function(data) { //when we get data
+    console.log("Received: "+data + '\n'); //output it
+});
 
-// when the server is connected
-server.on('connection', function(socket:net.Socket){
+client.on('close', function() { //when connection closed
+    console.log('server disconnected');
+    console.log('closing client');
+    process.exit(0);
+});
 
-    // when data is sent to the socket
-    socket.on('data', function(data){
-        //
+
+var HOST = '127.0.0.1';
+var PORT = 3000;
+
+//connect to the server
+client.connect(PORT, HOST, function() {
+    console.log('Connected to: ' + HOST + ':' + PORT);
+    
+    // prompt the user
+    io.setPrompt('> ');
+    io.prompt();
+
+    io.on('line', function(line){
+        switch(line.trim()) {
+        case 'exit':
+            client.end();
+            console.log('client disconnected');
+            process.exit(0);
+            break;
+        default:
+            client.write(line);
+            break;
+        }
+        // then prompt again
+        io.prompt();
+    }).on('close', function() {
+        //end the connection to the server if the user manually closes
+        client.end();
+        console.log('client disconnected');
+        process.exit(0);
     });
 
-    socket.on('close', function(){
-        // handle client disconnecting
-    })
-
 
 });
 
-//when the server starts listening...
-server.on('listening', function() {
-    //output to the console the port number on which we are listening
-    var addr:Address = server.address();
-    console.log('server listening on port %d', addr.port);
-});
 
-//start the server
-server.listen({
-  host: ip.address(),
-  port: 3000
-});
